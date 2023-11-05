@@ -9,12 +9,18 @@ defmodule HowMuch.Value do
 
   @ex_money_float_round 8
 
-  def calculate(asset_records, target_currency, until_date) do
+  def calculate(asset_records, target_currency, until_timestamp) when is_integer(until_timestamp) do
     Enum.group_by(asset_records, &Map.get(&1, :name))
     |> Enum.flat_map(fn {_name, records} ->
-      calculate_asset(records, target_currency, until_date)
+      Enum.map(records, &({&1, unix_timestamp(&1.date)}))
+      |> Enum.filter(&(elem(&1, 1) <= until_timestamp))
+      |> Enum.uniq_by(&(elem(&1, 1)))
+      |> Enum.sort_by(&(elem(&1, 1)))
+      |> Enum.map(&(elem(&1, 0)))
+      |> calculate_asset(target_currency, until_timestamp)
     end)
   end
+  def calculate(asset_records, target_currency, until_time), do: calculate(asset_records, target_currency, DateTime.to_unix(until_time))
 
   def serialize(values, target_currency) do
     Enum.map(values, fn %{
@@ -38,16 +44,7 @@ defmodule HowMuch.Value do
 
   defp calculate_asset([], _target_currency, _until_date), do: []
 
-  defp calculate_asset(asset_records, target_currency, until_date) do
-    until_timestamp = unix_timestamp(until_date)
-
-    sorted_records =
-      Enum.map(asset_records, &({&1, unix_timestamp(&1.date)}))
-      |> Enum.filter(&(elem(&1, 1) <= until_timestamp))
-      |> Enum.uniq_by(&(elem(&1, 1)))
-      |> Enum.sort_by(&(elem(&1, 1)))
-      |> Enum.map(&(elem(&1, 0)))
-
+  defp calculate_asset(sorted_records, target_currency, until_timestamp) do
     last_record = Enum.at(sorted_records, -1)
 
     Enum.zip(
@@ -57,7 +54,7 @@ defmodule HowMuch.Value do
     |> Enum.flat_map(fn {record_a, record_b} ->
       dates_between_records(record_a, record_b)
     end)
-    |> (&(&1 ++ dates_between_records(last_record, %{date: until_date}))).()
+    |> (&(&1 ++ dates_between_records(last_record, %{date: unix_timestamp_to_date(until_timestamp)}))).()
     |> Enum.map(fn {record, date} ->
       HowMuch.Pricing.price(record.symbol, date)
       |> (&calculate_value(record, date, &1, target_currency)).()

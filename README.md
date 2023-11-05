@@ -7,12 +7,6 @@ Calculate how much assets and value I have.
 Add these lines to `Notebook dependencies and setup` to install package and set config:
 
 ```elixir
-Mix.install([
-  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.0"},
-])
-
-File.mkdir_p!("priv")
-
 Application.put_all_env(
   elixir: [
     time_zone_database: Tz.TimeZoneDatabase
@@ -26,6 +20,12 @@ Application.put_all_env(
     pricing_dets: "priv/pricing.dets"
   ]
 )
+
+File.mkdir_p!("priv")
+
+Mix.install([
+  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.0"},
+])
 ```
 
 And add `OPEN_EXCHANGE_RATES_APP_ID` to [secret](https://news.livebook.dev/hubs-and-secret-management---launch-week-1---day-3-3tMaJ2), visit [https://openexchangerates.org/](https://openexchangerates.org/) to get one
