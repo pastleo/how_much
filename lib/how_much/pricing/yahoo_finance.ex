@@ -2,6 +2,7 @@ defmodule HowMuch.Pricing.YahooFinance do
   @moduledoc """
   ref: https://github.com/mtanca/YahooFinanceElixir/blob/master/lib/historical.ex
   """
+  import HowMuch.Utils
 
   def req_pricings("YH." <> stock_symbol, date) do
     request_with_crumb =
@@ -17,6 +18,7 @@ defmodule HowMuch.Pricing.YahooFinance do
     end_date =
       Date.days_in_month(date)
       |> (&Date.from_erl!({date.year, date.month, &1})).()
+      |> (&Enum.min_by([&1, yesterday()], fn d -> unix_timestamp(d) end)).()
 
     end_date_unix = HowMuch.Utils.unix_timestamp(end_date)
 

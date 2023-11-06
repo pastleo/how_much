@@ -24,8 +24,9 @@ defmodule HowMuch.MixProject do
     [
       {:tz, "~> 0.26.2"},
       {:req, "~> 0.4.0"},
-      {:nimble_csv, "~> 1.1"}, # allow :req to parse csv response automatically
-      {:ex_money, "~> 5.15.0"},
+      # allow :req to parse csv response automatically:
+      {:nimble_csv, "~> 1.1"},
+      {:ex_money, "~> 5.15.0"}
     ]
   end
 end

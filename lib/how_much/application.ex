@@ -8,8 +8,9 @@ defmodule HowMuch.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      HowMuch.Pricing,
+      HowMuch.Pricing
     ]
+
     opts = [strategy: :one_for_one, name: HowMuch.Supervisor]
     Supervisor.start_link(children, opts)
   end

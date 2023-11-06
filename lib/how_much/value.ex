@@ -9,18 +9,21 @@ defmodule HowMuch.Value do
 
   @ex_money_float_round 8
 
-  def calculate(asset_records, target_currency, until_timestamp) when is_integer(until_timestamp) do
+  def calculate(asset_records, target_currency, until_timestamp)
+      when is_integer(until_timestamp) do
     Enum.group_by(asset_records, &Map.get(&1, :name))
     |> Enum.flat_map(fn {_name, records} ->
-      Enum.map(records, &({&1, unix_timestamp(&1.date)}))
+      Enum.map(records, &{&1, unix_timestamp(&1.date)})
       |> Enum.filter(&(elem(&1, 1) <= until_timestamp))
-      |> Enum.uniq_by(&(elem(&1, 1)))
-      |> Enum.sort_by(&(elem(&1, 1)))
-      |> Enum.map(&(elem(&1, 0)))
+      |> Enum.uniq_by(&elem(&1, 1))
+      |> Enum.sort_by(&elem(&1, 1))
+      |> Enum.map(&elem(&1, 0))
       |> calculate_asset(target_currency, until_timestamp)
     end)
   end
-  def calculate(asset_records, target_currency, until_time), do: calculate(asset_records, target_currency, DateTime.to_unix(until_time))
+
+  def calculate(asset_records, target_currency, until_time),
+    do: calculate(asset_records, target_currency, DateTime.to_unix(until_time))
 
   def serialize(values, target_currency) do
     Enum.map(values, fn %{
@@ -52,18 +55,29 @@ defmodule HowMuch.Value do
       Enum.slice(sorted_records, 1..-1)
     )
     |> Enum.flat_map(fn {record_a, record_b} ->
-      dates_between_records(record_a, record_b)
+      records_between(record_a, record_b.date)
     end)
-    |> (&(&1 ++ dates_between_records(last_record, %{date: unix_timestamp_to_date(until_timestamp)}))).()
+    |> (&(&1 ++ records_until(last_record, until_timestamp))).()
     |> Enum.map(fn {record, date} ->
       HowMuch.Pricing.price(record.symbol, date)
       |> (&calculate_value(record, date, &1, target_currency)).()
     end)
   end
 
-  defp dates_between_records(record_a, record_b) do
+  defp records_between(record_a, record_b_date),
+    do: extend_records(record_a, Date.diff(record_b_date, record_a.date) - 1)
+
+  defp records_until(record_a, until_timestamp) do
+    unix_timestamp_to_date(until_timestamp)
+    |> Date.diff(record_a.date)
+    |> (&extend_records(record_a, &1)).()
+  end
+
+  defp extend_records(record_a, count) when count < 1, do: [{record_a, record_a.date}]
+
+  defp extend_records(record_a, count) do
     Enum.map(
-      0..(Date.diff(record_b.date, record_a.date) - 1),
+      0..count,
       fn d -> Date.add(record_a.date, d) end
     )
     |> Enum.map(fn date ->

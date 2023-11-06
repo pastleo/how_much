@@ -8,4 +8,8 @@ defmodule HowMuch.Utils do
     DateTime.from_unix!(timestamp)
     |> DateTime.to_date()
   end
+
+  def yesterday() do
+    Date.utc_today() |> Date.add(-1)
+  end
 end

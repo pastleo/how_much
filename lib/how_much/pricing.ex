@@ -27,7 +27,13 @@ defmodule HowMuch.Pricing do
   end
 
   def price(stock, date) do
-    GenServer.call(HowMuch.Pricing, {:price, stock, date}, @price_call_timeout)
+    last_close_price_date = yesterday()
+
+    if unix_timestamp(date) < unix_timestamp(last_close_price_date) do
+      GenServer.call(HowMuch.Pricing, {:price, stock, date}, @price_call_timeout)
+    else
+      GenServer.call(HowMuch.Pricing, {:price, stock, last_close_price_date}, @price_call_timeout)
+    end
   end
 
   # Server
@@ -82,7 +88,9 @@ defmodule HowMuch.Pricing do
     key = table_key(symbol, date)
 
     case :dets.lookup(@ets_table, key) do
-      [{^key, value}] -> value
+      [{^key, value}] ->
+        value
+
       [] ->
         Logger.debug("no pricing in dets for #{symbol} on #{date}, will need to fetch...")
         nil
@@ -118,16 +126,15 @@ defmodule HowMuch.Pricing do
 
   # Utils
 
-  def sort_fill_pricings([], _end_date), do: []
+  def sort_fill_pricings([], _fill_until_date), do: []
 
-  def sort_fill_pricings(pricings, end_date) do
+  def sort_fill_pricings(pricings, fill_until_date) do
     sorted_pricings = sort_pricings_by_date(pricings)
     first_pricing = Enum.at(sorted_pricings, 0)
+    end_pricing = Enum.at(sorted_pricings, -1)
 
     end_date =
-      [Enum.at(sorted_pricings, -1).date, end_date]
-      |> Enum.sort_by(&unix_timestamp/1)
-      |> Enum.at(-1)
+      Enum.max_by([fill_until_date, end_pricing.date], &unix_timestamp/1)
 
     sorted_pricings_map = pricings_map(sorted_pricings)
 
