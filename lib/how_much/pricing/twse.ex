@@ -1,7 +1,14 @@
 defmodule HowMuch.Pricing.Twse do
+  @behaviour HowMuch.Pricing.Fetcher
   import HowMuch.Utils
 
-  def req_pricings("TWSE." <> stock_symbol, date) do
+  @symbol_prefix "TWSE."
+
+  @impl true
+  def symbol_prefix, do: @symbol_prefix
+
+  @impl true
+  def req_pricings(@symbol_prefix <> stock_symbol, date) do
     query_date_this_month =
       Date.from_erl!({date.year, date.month, 1})
       |> Calendar.strftime("%Y%m%d")
@@ -24,7 +31,7 @@ defmodule HowMuch.Pricing.Twse do
     end)
     |> Enum.map(fn row ->
       %HowMuch.Pricing{
-        symbol: "TWSE.#{stock_symbol}",
+        symbol: "#{@symbol_prefix}#{stock_symbol}",
         date: Enum.at(row, 0) |> parse_date(1911),
         price: Enum.at(row, 6) |> parse_price(),
         currency: :TWD

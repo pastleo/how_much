@@ -8,9 +8,6 @@ Add these lines to `Notebook dependencies and setup` to install package and set 
 
 ```elixir
 Application.put_all_env(
-  elixir: [
-    time_zone_database: Tz.TimeZoneDatabase
-  ],
   ex_money: [
     open_exchange_rates_app_id: System.fetch_env!("LB_OPEN_EXCHANGE_RATES_APP_ID"),
     exchange_rates_cache_module: HowMuch.MoneyExchangeRatesDets,

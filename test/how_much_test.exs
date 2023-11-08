@@ -6,11 +6,11 @@ defmodule HowMuchTest do
   test "calculate" do
     fiat_assets_records =
       HowMuchTestData.fiat_assets_data()
-      |> HowMuch.Record.from_table_data()
+      |> HowMuch.Record.from_table_data(tags: ["#fiat"])
 
     debt_records =
       HowMuchTestData.debt_data()
-      |> HowMuch.Record.from_table_data(true)
+      |> HowMuch.Record.from_table_data(debt: true)
 
     twse_stocks_assets_records =
       HowMuchTestData.twse_stocks_data()
@@ -33,7 +33,7 @@ defmodule HowMuchTest do
       |> HowMuch.Value.calculate(HowMuchTestData.target_currency(), HowMuchTestData.until_time())
       |> HowMuch.Value.serialize(HowMuchTestData.target_currency())
 
-    # IO.inspect(all_assets_values_serialized)
+    IO.inspect(all_assets_values_serialized)
     IO.puts("length of all_assets_values_serialized: #{length(all_assets_values_serialized)}")
 
     assert HowMuch.hello() == :world

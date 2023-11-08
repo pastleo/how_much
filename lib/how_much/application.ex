@@ -7,6 +7,9 @@ defmodule HowMuch.Application do
 
   @impl true
   def start(_type, _args) do
+    HowMuch.Pricing.Fetcher.register(HowMuch.Pricing.Twse)
+    HowMuch.Pricing.Fetcher.register(HowMuch.Pricing.YahooFinance)
+
     children = [
       HowMuch.Pricing
     ]

@@ -2,9 +2,16 @@ defmodule HowMuch.Pricing.YahooFinance do
   @moduledoc """
   ref: https://github.com/mtanca/YahooFinanceElixir/blob/master/lib/historical.ex
   """
+  @behaviour HowMuch.Pricing.Fetcher
   import HowMuch.Utils
 
-  def req_pricings("YH." <> stock_symbol, date) do
+  @symbol_prefix "YH."
+
+  @impl true
+  def symbol_prefix, do: @symbol_prefix
+
+  @impl true
+  def req_pricings(@symbol_prefix <> stock_symbol, date) do
     request_with_crumb =
       Req.get!("https://finance.yahoo.com/quote/#{stock_symbol}/history")
 
@@ -33,7 +40,7 @@ defmodule HowMuch.Pricing.YahooFinance do
     end)
     |> Enum.map(fn row ->
       %HowMuch.Pricing{
-        symbol: "YH.#{stock_symbol}",
+        symbol: "#{@symbol_prefix}#{stock_symbol}",
         date: Map.get(row, "Date") |> Date.from_iso8601() |> elem(1),
         price: Map.get(row, "Close") |> Float.parse() |> elem(0),
         currency: currency(stock_symbol)

@@ -22,7 +22,6 @@ defmodule HowMuch.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:tz, "~> 0.26.2"},
       {:req, "~> 0.4.0"},
       # allow :req to parse csv response automatically:
       {:nimble_csv, "~> 1.1"},

@@ -8,12 +8,14 @@ defmodule HowMuch.Pricing do
   @price_call_timeout 60000
   @ets_table :how_much_pricings
 
-  def req_pricings("TWSE." <> symbol, date) do
-    HowMuch.Pricing.Twse.req_pricings("TWSE." <> symbol, date)
-  end
-
-  def req_pricings("YH." <> symbol, date) do
-    HowMuch.Pricing.YahooFinance.req_pricings("YH." <> symbol, date)
+  def req_pricings(symbol, date) do
+    with module when not is_nil(module) <- HowMuch.Pricing.Fetcher.get_module(symbol) do
+      apply(module, :req_pricings, [symbol, date])
+    else
+      _ ->
+        Logger.warning("cannot find pricing fetcher module for #{symbol}")
+        []
+    end
   end
 
   # Client
