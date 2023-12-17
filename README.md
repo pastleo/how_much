@@ -54,6 +54,8 @@ cp test/test_helper.example.exs test/test_helper.exs
 
 configure these files and run `mix test` or `iex -S mix` to iterate development
 
-## Usage
+## Usage & Demo
 
-see `test/how_much_test.exs`
+[![Run in Livebook](https://livebook.dev/badge/v1/gray.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpastleo%2Fhow_much%2Fmain%2Fdemo.livemd)
+
+> or see `test/how_much_test.exs` and `HowMuchTestData` in test helper.

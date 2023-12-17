@@ -1,0 +1,179 @@
+# HowMuch demo
+
+```elixir
+Application.put_all_env(
+  ex_money: [
+    open_exchange_rates_app_id: System.fetch_env!("LB_OPEN_EXCHANGE_RATES_APP_ID"),
+    exchange_rates_cache_module: HowMuch.MoneyExchangeRatesDets
+  ],
+  handsontable: [
+    license_key: "non-commercial-and-evaluation"
+  ],
+  how_much: [
+    pricing_dets: "priv/pricing.dets",
+    money_exchange_rate_dets: "priv/money_exchange_rate.dets"
+  ]
+)
+
+File.mkdir_p!("priv")
+
+Mix.install([
+  {:handsontable_kino_smartcell,
+   git: "https://github.com/pastleo/handsontable_kino_smartcell.git", tag: "0.1.6"},
+  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.2"},
+  {:explorer, "~> 0.7.1"},
+  {:kino_explorer, "~> 0.1.10"},
+  {:vega_lite, "~> 0.1.6"},
+  {:kino_vega_lite, "~> 0.1.7"}
+])
+```
+
+## 1. Define asset records
+
+<!-- livebook:{"attrs":{"config":{},"data":[["","TWSE.0050","TWSE.2330","","","","","","",""],["2023-09-18","1000","2000","","","","","","",""],["2023-09-19","1000","3000","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""]],"elixir":"twse_stocks_records =\n  IO.inspect(twse_stocks_data)\n  |> HowMuch.Record.from_table_data()","variable":"twse_stocks_data"},"chunks":null,"kind":"Elixir.HandsontableKinoSmartcell","livebook_object":"smart_cell"} -->
+
+```elixir
+twse_stocks_data = [
+  ["", "TWSE.0050", "TWSE.2330", "", "", "", "", "", "", ""],
+  ["2023-09-18", "1000", "2000", "", "", "", "", "", "", ""],
+  ["2023-09-19", "1000", "3000", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""]
+]
+
+twse_stocks_records =
+  IO.inspect(twse_stocks_data)
+  |> HowMuch.Record.from_table_data()
+```
+
+<!-- livebook:{"attrs":{"config":{},"data":[["","bank1:TWD","bank2:USD #fixed-deposit","bank3:JPY #fixed-deposit","","","","","",""],["2023-09-18","10,000","1,000.5","25,000","","","","","",""],["2023-09-19","12,000","2,000.0","20,000","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""]],"elixir":"fiat_assets_records =\n  IO.inspect(fiat_assets_data)\n  |> HowMuch.Record.from_table_data(tags: [\"#fiat\"])","variable":"fiat_assets_data"},"chunks":null,"kind":"Elixir.HandsontableKinoSmartcell","livebook_object":"smart_cell"} -->
+
+```elixir
+fiat_assets_data = [
+  [
+    "",
+    "bank1:TWD",
+    "bank2:USD #fixed-deposit",
+    "bank3:JPY #fixed-deposit",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  ["2023-09-18", "10,000", "1,000.5", "25,000", "", "", "", "", "", ""],
+  ["2023-09-19", "12,000", "2,000.0", "20,000", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""]
+]
+
+fiat_assets_records =
+  IO.inspect(fiat_assets_data)
+  |> HowMuch.Record.from_table_data(tags: ["#fiat"])
+```
+
+<!-- livebook:{"attrs":{"config":{},"data":[["","YH.VOO","","","","","","","",""],["2023-09-18","1","","","","","","","",""],["2023-09-19","2","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""]],"elixir":"firstrade_records =\n  IO.inspect(firstrade_data)\n  |> HowMuch.Record.from_table_data()","variable":"firstrade_data"},"chunks":null,"kind":"Elixir.HandsontableKinoSmartcell","livebook_object":"smart_cell"} -->
+
+```elixir
+firstrade_data = [
+  ["", "YH.VOO", "", "", "", "", "", "", "", ""],
+  ["2023-09-18", "1", "", "", "", "", "", "", "", ""],
+  ["2023-09-19", "2", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "", ""]
+]
+
+firstrade_records =
+  IO.inspect(firstrade_data)
+  |> HowMuch.Record.from_table_data()
+```
+
+## 2. Calculate & Serialize
+
+```elixir
+target_currency = :TWD
+# ~D[2023-09-20] # Date.utc_today()
+today = ~D[2023-12-10]
+calculate_until = HowMuch.Utils.unix_timestamp(today)
+
+all_assets_values_serialized =
+  (fiat_assets_records ++ twse_stocks_records ++ firstrade_records)
+  |> HowMuch.Value.calculate(target_currency, calculate_until)
+  |> HowMuch.Value.serialize(target_currency)
+
+IO.inspect(all_assets_values_serialized)
+IO.puts("length of all_assets_values_serialized: #{length(all_assets_values_serialized)}")
+```
+
+## 3. Summarize with Dataframe
+
+```elixir
+require Explorer.DataFrame
+alias Explorer.DataFrame, as: DF
+
+all_assets_values_data_frame = DF.new(all_assets_values_serialized)
+```
+
+```elixir
+defmodule HowMuchValueDataFrameHelper do
+  def summarize(assets_values_data_frame, by_field) do
+    each_assets_values_data_frame =
+      assets_values_data_frame
+      |> DF.lazy()
+      |> DF.group_by([by_field, "date"])
+      |> DF.summarise(value_sum: sum(value))
+      |> DF.collect()
+      |> DF.pivot_wider("name", "value_sum")
+
+    total_data_frame =
+      assets_values_data_frame
+      |> DF.lazy()
+      |> DF.group_by("date")
+      |> DF.summarise(value_sum: sum(value))
+      |> DF.collect()
+
+    DF.join(
+      total_data_frame,
+      each_assets_values_data_frame,
+      on: ["date"],
+      how: :left
+    )
+  end
+end
+
+all_assets_values_summary_data_frame =
+  HowMuchValueDataFrameHelper.summarize(all_assets_values_data_frame, "name")
+```
+
+## 4. Plot with VegaLite
+
+<!-- livebook:{"attrs":{"chart_title":null,"height":600,"layers":[{"active":true,"chart_type":"bar","color_field":"name","color_field_aggregate":null,"color_field_bin":null,"color_field_scale_scheme":null,"color_field_type":"nominal","data_variable":"all_assets_values_data_frame","geodata_color":"blue","latitude_field":null,"longitude_field":null,"x_field":"date","x_field_aggregate":null,"x_field_bin":null,"x_field_scale_type":null,"x_field_type":"temporal","y_field":"value","y_field_aggregate":null,"y_field_bin":null,"y_field_scale_type":null,"y_field_type":"quantitative"}],"vl_alias":"Elixir.VegaLite","width":600},"chunks":null,"kind":"Elixir.KinoVegaLite.ChartCell","livebook_object":"smart_cell"} -->
+
+```elixir
+VegaLite.new(width: 600, height: 600)
+|> VegaLite.data_from_values(all_assets_values_data_frame,
+  only: ["date", "value", "name"]
+)
+|> VegaLite.mark(:bar)
+|> VegaLite.encode_field(:x, "date", type: :temporal)
+|> VegaLite.encode_field(:y, "value", type: :quantitative)
+|> VegaLite.encode_field(:color, "name", type: :nominal)
+```
+
+<!-- livebook:{"offset":7288,"stamp":{"token":"XCP.wzgnokIsxjGYK9ebZFUq9pqqfxQXMELxFP96f8FrGPj0P6VfBKqa9NK8C3nxRz215UCJaQ3ForecYOkgPRqoMzaG_uA2G2-PtUmsjlOd6Kj-JCZ8SgtTT5qDjDBxndrNzlYUORA","version":2}} -->
