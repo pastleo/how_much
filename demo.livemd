@@ -2,6 +2,10 @@
 
 ```elixir
 Application.put_all_env(
+  # if explorer fails to compile:
+  # explorer: [
+  #   use_legacy_artifacts: true
+  # ],
   ex_money: [
     open_exchange_rates_app_id: System.fetch_env!("LB_OPEN_EXCHANGE_RATES_APP_ID"),
     exchange_rates_cache_module: HowMuch.MoneyExchangeRatesDets
@@ -21,8 +25,7 @@ Mix.install([
   {:handsontable_kino_smartcell,
    git: "https://github.com/pastleo/handsontable_kino_smartcell.git", tag: "0.1.6"},
   {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.2"},
-  {:explorer, "~> 0.7.1"},
-  {:kino_explorer, "~> 0.1.10"},
+  {:kino_explorer, "~> 0.1.11"},
   {:vega_lite, "~> 0.1.6"},
   {:kino_vega_lite, "~> 0.1.7"}
 ])
