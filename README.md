@@ -21,7 +21,7 @@ Application.put_all_env(
 File.mkdir_p!("priv")
 
 Mix.install([
-  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.2"},
+  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.3"},
 ])
 ```
 
@@ -35,7 +35,7 @@ by adding `how_much` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.2"},
+    {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.3"},
   ]
 end
 ```
