@@ -12,11 +12,6 @@ defmodule HowMuch.Pricing.YahooFinance do
 
   @impl true
   def req_pricings(@symbol_prefix <> stock_symbol, date) do
-    request_with_crumb =
-      Req.get!("https://finance.yahoo.com/quote/#{stock_symbol}/history")
-
-    crumb = request_with_crumb.body |> extract_crumb() |> format_crumb()
-
     start_date_unix =
       Date.add(date, -(date.day + 1))
       |> (&Date.from_erl!({&1.year, &1.month, 1})).()
@@ -31,7 +26,7 @@ defmodule HowMuch.Pricing.YahooFinance do
 
     [header | rows] =
       Req.get!(
-        "https://query1.finance.yahoo.com/v7/finance/download/#{stock_symbol}?period1=#{start_date_unix}&period2=#{end_date_unix}&interval=1d&events=history&crumb=#{crumb}"
+        "https://query1.finance.yahoo.com/v7/finance/download/#{stock_symbol}?period1=#{start_date_unix}&period2=#{end_date_unix}&interval=1d&events=history"
       ).body
 
     Enum.map(rows, fn row ->
@@ -47,21 +42,6 @@ defmodule HowMuch.Pricing.YahooFinance do
       }
     end)
     |> HowMuch.Pricing.sort_fill_pricings(end_date)
-  end
-
-  defp extract_crumb(reponse_body) do
-    crumb = Regex.scan(~r/"crumb":"(.+?)"/, reponse_body)
-
-    crumb
-    |> List.last()
-    |> Enum.at(1)
-  end
-
-  defp format_crumb(crumb) do
-    cond do
-      String.contains?(crumb, "002F") -> String.replace(crumb, "\\u002F", "/")
-      true -> crumb
-    end
   end
 
   defp currency(stock_symbol) do
