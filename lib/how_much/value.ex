@@ -52,8 +52,8 @@ defmodule HowMuch.Value do
     last_record = Enum.at(sorted_records, -1)
 
     Enum.zip(
-      Enum.slice(sorted_records, 0..-2),
-      Enum.slice(sorted_records, 1..-1)
+      Enum.slice(sorted_records, 0..-2//1),
+      Enum.slice(sorted_records, 1..-1//1)
     )
     |> Enum.flat_map(fn {record_a, record_b} ->
       records_between(record_a, record_b.date)

@@ -3,7 +3,9 @@ defmodule HowMuch.Pricing.YahooFinance do
   ref: https://github.com/mtanca/YahooFinanceElixir/blob/master/lib/historical.ex
   """
   @behaviour HowMuch.Pricing.Fetcher
-  import HowMuch.Utils
+  use GenServer
+
+  require Logger
 
   @symbol_prefix "YH."
 
@@ -12,41 +14,74 @@ defmodule HowMuch.Pricing.YahooFinance do
 
   @impl true
   def req_pricings(@symbol_prefix <> stock_symbol, date) do
-    start_date_unix =
-      Date.add(date, -(date.day + 1))
-      |> (&Date.from_erl!({&1.year, &1.month, 1})).()
-      |> HowMuch.Utils.unix_timestamp()
+    GenServer.call(HowMuch.Pricing.YahooFinance, {:req_pricings, stock_symbol, date})
+  end
 
-    end_date =
-      Date.days_in_month(date)
-      |> (&Date.from_erl!({date.year, date.month, &1})).()
-      |> (&Enum.min_by([&1, yesterday()], fn d -> unix_timestamp(d) end)).()
+  # GenServer
+  def start_link(_options) do
+    GenServer.start_link(HowMuch.Pricing.YahooFinance, nil, name: HowMuch.Pricing.YahooFinance)
+  end
 
-    end_date_unix = HowMuch.Utils.unix_timestamp(end_date)
+  @impl true
+  def init(_) do
+    {:ok, %{python_globals: nil}}
+  end
 
-    [header | rows] =
-      Req.get!(
-        "https://query1.finance.yahoo.com/v7/finance/download/#{stock_symbol}?period1=#{start_date_unix}&period2=#{end_date_unix}&interval=1d&events=history"
-      ).body
+  @impl true
+  def handle_call({:req_pricings, stock_symbol, date}, _from, state) do
+    handle_req_pricings(stock_symbol, date, state)
+  end
 
-    Enum.map(rows, fn row ->
-      Enum.zip(header, row)
-      |> Enum.into(%{})
+  # ===
+
+  defp handle_req_pricings(stock_symbol, date, %{python_globals: nil} = state) do
+    Logger.debug("HowMuch.Pricing.YahooFinance: initializing python_globals...")
+
+    Path.dirname(__ENV__.file)
+    |> Path.join("yahoo_finance/yfinance.py")
+    |> File.read!()
+    |> Pythonx.eval(%{})
+    |> then(fn {_, python_globals} ->
+      Map.put(state, :python_globals, python_globals)
     end)
-    |> Enum.map(fn row ->
-      %HowMuch.Pricing{
-        symbol: "#{@symbol_prefix}#{stock_symbol}",
-        date: Map.get(row, "Date") |> Date.from_iso8601() |> elem(1),
-        price: Map.get(row, "Close") |> Float.parse() |> elem(0),
-        currency: currency(stock_symbol)
-      }
+    |> then(fn new_state ->
+       handle_req_pricings(stock_symbol, date, new_state)
     end)
-    |> HowMuch.Pricing.sort_fill_pricings(end_date)
+  end
+  defp handle_req_pricings(stock_symbol, date, %{python_globals: python_globals} = state) do
+    {
+      :reply,
+      fetch_yfinance(stock_symbol, date, python_globals),
+      state
+    }
+  end
+
+  defp fetch_yfinance(stock_symbol, date, python_globals) do
+    start_date = Date.add(date, -30) |> Date.to_iso8601()
+    stock_currency = currency(stock_symbol)
+
+    try do
+      Pythonx.eval("fetch_tick_3mo(\"#{stock_symbol}\", \"#{start_date}\")", python_globals)
+      |> elem(0)
+      |> Pythonx.decode()
+      |> Enum.map(fn {price_date, price} ->
+        %HowMuch.Pricing{
+          symbol: "#{@symbol_prefix}#{stock_symbol}",
+          date: Date.from_iso8601!(price_date),
+          price: price,
+          currency: stock_currency
+        }
+      end)
+    rescue
+      error ->
+        Logger.error("HowMuch.Pricing.YahooFinance.fetch_yfinance: #{inspect(error)}")
+        []
+    end
   end
 
   defp currency(stock_symbol) do
     case String.split(stock_symbol, ".", parts: 2) do
-      [_symbol, "TWO"] -> :TWD
+      [_symbol, "TW"] -> :TWD
       _ -> :USD
     end
   end

@@ -7,6 +7,7 @@ defmodule HowMuch.Pricing do
 
   @price_call_timeout 60000
   @ets_table :how_much_pricings
+  @fiat_symbols %{"TWD" => :TWD, "USD" => :USD, "JPY" => :JPY}
 
   def req_pricings(symbol, date) do
     with module when not is_nil(module) <- HowMuch.Pricing.Fetcher.get_module(symbol) do
@@ -29,13 +30,7 @@ defmodule HowMuch.Pricing do
   end
 
   def price(stock, date) do
-    last_close_price_date = yesterday()
-
-    if unix_timestamp(date) < unix_timestamp(last_close_price_date) do
-      GenServer.call(HowMuch.Pricing, {:price, stock, date}, @price_call_timeout)
-    else
-      GenServer.call(HowMuch.Pricing, {:price, stock, last_close_price_date}, @price_call_timeout)
-    end
+    GenServer.call(HowMuch.Pricing, {:price, stock, date}, @price_call_timeout)
   end
 
   # Server
@@ -53,20 +48,7 @@ defmodule HowMuch.Pricing do
 
   @impl true
   def handle_call({:price, symbol, date}, _from, state) do
-    pricing = fetch_pricing(symbol, date)
-
-    if pricing do
-      {:reply, pricing, state}
-    else
-      pricings = req_pricings(symbol, date)
-      update_table(pricings)
-
-      {
-        :reply,
-        fetched_pricings(pricings, symbol, date),
-        state
-      }
-    end
+    {:reply, handle_price_call(symbol, date), state}
   end
 
   @impl true
@@ -74,74 +56,117 @@ defmodule HowMuch.Pricing do
     :dets.close(@ets_table)
   end
 
-  defp fetch_pricing("TWD", date) do
-    %{symbol: "TWD", date: date, price: 1, currency: :TWD}
+  defp handle_price_call(symbol, date) do
+    with :continue <- fiat_symbol_pricing(symbol, date),
+         :continue <- retrieve_pricing_from_dets(symbol, date),
+         :continue <- req_pricings_update_table(symbol, date),
+         :continue <- retrieve_latest_pricing_from_dets(symbol, date)
+    do
+      Logger.warning("HowMuch.Pricing: pricing not found for #{symbol} on #{date}, price: 0, currency: :TWD")
+      %HowMuch.Pricing{symbol: symbol, date: date, price: 0, currency: :TWD}
+    else
+      pricing -> pricing
+    end
   end
 
-  defp fetch_pricing("USD", date) do
-    %{symbol: "USD", date: date, price: 1, currency: :USD}
+  defp fiat_symbol_pricing(symbol, date) do
+    if Map.has_key?(@fiat_symbols, symbol) do
+      %HowMuch.Pricing{
+        symbol: symbol,
+        date: date,
+        price: 1,
+        currency: Map.get(@fiat_symbols, symbol)
+      }
+    else
+      :continue
+    end
   end
 
-  defp fetch_pricing("JPY", date) do
-    %{symbol: "JPY", date: date, price: 1, currency: :JPY}
-  end
-
-  defp fetch_pricing(symbol, date) do
+  defp retrieve_pricing_from_dets(symbol, date) do
     key = table_key(symbol, date)
 
     case :dets.lookup(@ets_table, key) do
-      [{^key, value}] ->
-        value
+      [{^key, pricing}] -> pricing
+      _ ->
+        Logger.debug("HowMuch.Pricing: no pricing in dets for #{symbol} on #{date}, will need to fetch...")
+        :continue
+    end
+  end
 
-      [] ->
-        Logger.debug("no pricing in dets for #{symbol} on #{date}, will need to fetch...")
-        nil
+  defp req_pricings_update_table(symbol, date) do
+    pricings =
+      req_pricings(symbol, date)
+      |> update_table()
+
+    Enum.find(pricings, &(&1.symbol == symbol and &1.date == date))
+    |> case do
+      nil -> :continue
+      pricing -> pricing
+    end
+  end
+
+  defp retrieve_latest_pricing_from_dets(symbol, date) do
+    key = table_latest_key(symbol)
+    with [{^key, latest_pricing}] <- :dets.lookup(@ets_table, key),
+         true <- unix_timestamp(latest_pricing.date) <= unix_timestamp(date)
+    do
+      Logger.debug("HowMuch.Pricing: using latest pricing in dets for #{symbol} on #{date}, price: #{latest_pricing.price}, currency: #{latest_pricing.currency}")
+      latest_pricing
+    else
+      _ -> :continue
     end
   end
 
   defp table_key(symbol, date) do
     "#{symbol}@#{unix_timestamp(date) |> Integer.to_string()}"
   end
+  defp table_latest_key(symbol) do
+    "#{symbol}@latest"
+  end
 
+  defp update_table([]), do: []
   defp update_table(pricings) do
-    Enum.each(pricings, fn pricing ->
+    {filled_pricings, end_pricing} = fill_pricings(pricings)
+
+    update_table_each(filled_pricings)
+    update_table_latest(end_pricing)
+
+    :dets.sync(@ets_table)
+
+    filled_pricings
+  end
+
+  defp update_table_each(filled_pricings) do
+    Enum.each(filled_pricings, fn pricing ->
       :dets.insert(@ets_table, {
         table_key(pricing.symbol, pricing.date),
         pricing
       })
     end)
-
-    :dets.sync(@ets_table)
   end
 
-  defp fetched_pricings(pricings, symbol, date) do
-    Enum.find(pricings, &(&1.symbol == symbol and &1.date == date))
-    |> case do
-      nil ->
-        Logger.warning("pricing not found for #{symbol} on #{date}, price: 0, currency: :TWD")
-        %HowMuch.Pricing{symbol: symbol, date: date, price: 0, currency: :TWD}
+  defp update_table_latest(end_pricing) do
+    key = table_latest_key(end_pricing.symbol)
 
-      found_pricing ->
-        found_pricing
+    case :dets.lookup(@ets_table, key) do
+      [{^key, %{date: latest_date}}] ->
+        unix_timestamp(latest_date) < unix_timestamp(end_pricing.date)
+      _ -> true
+    end
+    |> if do
+      :dets.insert(@ets_table, {key, end_pricing})
     end
   end
 
-  # Utils
-
-  def sort_fill_pricings([], _fill_until_date), do: []
-
-  def sort_fill_pricings(pricings, fill_until_date) do
+  defp fill_pricings(pricings) do
     sorted_pricings = sort_pricings_by_date(pricings)
     first_pricing = Enum.at(sorted_pricings, 0)
     end_pricing = Enum.at(sorted_pricings, -1)
 
-    end_date =
-      Enum.max_by([fill_until_date, end_pricing.date], &unix_timestamp/1)
-
     sorted_pricings_map = pricings_map(sorted_pricings)
 
     Enum.map(
-      1..Date.diff(end_date, first_pricing.date),
+      1..Date.diff(end_pricing.date, first_pricing.date),
       fn d -> Date.add(first_pricing.date, d) end
     )
     |> Enum.reduce(
@@ -155,7 +180,9 @@ defmodule HowMuch.Pricing do
       end
     )
     |> elem(0)
-    |> (&sort_pricings_by_date(&1 ++ sorted_pricings)).()
+    |> then(fn filled_pricings ->
+      {filled_pricings ++ sorted_pricings, end_pricing}
+    end)
   end
 
   defp sort_pricings_by_date(pricings) do

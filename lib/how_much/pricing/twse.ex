@@ -1,6 +1,5 @@
 defmodule HowMuch.Pricing.Twse do
   @behaviour HowMuch.Pricing.Fetcher
-  import HowMuch.Utils
 
   @symbol_prefix "TWSE."
 
@@ -18,17 +17,29 @@ defmodule HowMuch.Pricing.Twse do
       |> (&Date.from_erl!({&1.year, &1.month, 1})).()
       |> Calendar.strftime("%Y%m%d")
 
-    fill_until_date =
-      Date.days_in_month(date)
-      |> (&Date.from_erl!({date.year, date.month, &1})).()
-      |> (&Enum.min_by([&1, yesterday()], fn d -> unix_timestamp(d) end)).()
-
     Enum.flat_map([query_date_prev_month, query_date_this_month], fn query_date ->
-      Req.get!(
-        "https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=#{query_date}&stockNo=#{stock_symbol}"
-      ).body
-      |> Map.get("data", [])
+      url = "https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=#{query_date}&stockNo=#{stock_symbol}"
+
+      case HTTPoison.get(url) do
+        {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+          case JSON.decode(body) do
+            {:ok, json} ->
+              Map.get(json, "data", [])
+            {:error, error} ->
+              IO.puts("Error parsing TWSE JSON response: #{inspect(error)}")
+              []
+          end
+
+        {:ok, %HTTPoison.Response{status_code: status_code}} ->
+          IO.puts("TWSE API returned status code: #{status_code}")
+          []
+
+        {:error, %HTTPoison.Error{reason: reason}} ->
+          IO.puts("Error fetching from TWSE: #{inspect(reason)}")
+          []
+      end
     end)
+    |> IO.inspect()
     |> Enum.map(fn row ->
       %HowMuch.Pricing{
         symbol: "#{@symbol_prefix}#{stock_symbol}",
@@ -37,7 +48,6 @@ defmodule HowMuch.Pricing.Twse do
         currency: :TWD
       }
     end)
-    |> HowMuch.Pricing.sort_fill_pricings(fill_until_date)
   end
 
   defp parse_date(str, year_adj) do
@@ -55,6 +65,6 @@ defmodule HowMuch.Pricing.Twse do
   end
 
   defp parse_price(str) do
-    Float.parse(str) |> elem(0)
+    String.replace(str, ~r/[^\d.]/, "") |> Float.parse() |> elem(0)
   end
 end

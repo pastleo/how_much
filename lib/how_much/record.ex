@@ -26,13 +26,13 @@ defmodule HowMuch.Record do
 
     columns = from_table_data_columns(data)
 
-    Enum.slice(data, 1..-1)
+    Enum.slice(data, 1..-1//1)
     |> Enum.flat_map(&from_table_data_row(&1, columns, debt, tags))
   end
 
   defp from_table_data_columns(data) do
     Enum.at(data, 0, [])
-    |> Enum.slice(1..-1)
+    |> Enum.slice(1..-1//1)
     |> Enum.map(fn column ->
       with matches when is_list(matches) <- Regex.run(@column_re, column) do
         Enum.slice(matches, 2..4)

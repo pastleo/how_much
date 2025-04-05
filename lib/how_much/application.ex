@@ -11,7 +11,8 @@ defmodule HowMuch.Application do
     HowMuch.Pricing.Fetcher.register(HowMuch.Pricing.YahooFinance)
 
     children = [
-      HowMuch.Pricing
+      HowMuch.Pricing,
+      HowMuch.Pricing.YahooFinance
     ]
 
     opts = [strategy: :one_for_one, name: HowMuch.Supervisor]

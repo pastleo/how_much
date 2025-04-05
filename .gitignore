@@ -31,6 +31,3 @@ how_much-*.tar
 
 # priv
 /priv/*
-
-# test helper with my data
-/test/test_helper.exs

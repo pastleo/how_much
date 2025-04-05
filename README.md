@@ -11,11 +11,12 @@ Application.put_all_env(
   ex_money: [
     open_exchange_rates_app_id: System.fetch_env!("LB_OPEN_EXCHANGE_RATES_APP_ID"),
     exchange_rates_cache_module: HowMuch.MoneyExchangeRatesDets,
+    default_cldr_backend: HowMuch.Cldr
   ],
   how_much: [
     money_exchange_rate_dets: "priv/money_exchange_rate.dets",
     pricing_dets: "priv/pricing.dets"
-  ]
+  ],
 )
 
 File.mkdir_p!("priv")
@@ -23,6 +24,16 @@ File.mkdir_p!("priv")
 Mix.install([
   {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.3"},
 ])
+
+Pythonx.uv_init("""
+[project]
+name = "project"
+version = "0.0.0"
+requires-python = "==3.13.*"
+dependencies = [
+  "yfinance==0.2.55"
+]
+""")
 ```
 
 And add `OPEN_EXCHANGE_RATES_APP_ID` to [secret](https://news.livebook.dev/hubs-and-secret-management---launch-week-1---day-3-3tMaJ2), visit [https://openexchangerates.org/](https://openexchangerates.org/) to get one
