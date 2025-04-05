@@ -16,13 +16,13 @@ Application.put_all_env(
   how_much: [
     money_exchange_rate_dets: "priv/money_exchange_rate.dets",
     pricing_dets: "priv/pricing.dets"
-  ],
+  ]
 )
 
 File.mkdir_p!("priv")
 
 Mix.install([
-  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.3"},
+  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.4"},
 ])
 
 Pythonx.uv_init("""
