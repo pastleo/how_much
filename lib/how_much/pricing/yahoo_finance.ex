@@ -82,6 +82,7 @@ defmodule HowMuch.Pricing.YahooFinance do
   defp currency(stock_symbol) do
     case String.split(stock_symbol, ".", parts: 2) do
       [_symbol, "TW"] -> :TWD
+      [_symbol, "TWO"] -> :TWD
       _ -> :USD
     end
   end

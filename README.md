@@ -8,21 +8,29 @@ Add these lines to `Notebook dependencies and setup` to install package and set 
 
 ```elixir
 Application.put_all_env(
+  handsontable: [
+    license_key: "non-commercial-and-evaluation"
+  ],
   ex_money: [
     open_exchange_rates_app_id: System.fetch_env!("LB_OPEN_EXCHANGE_RATES_APP_ID"),
     exchange_rates_cache_module: HowMuch.MoneyExchangeRatesDets,
     default_cldr_backend: HowMuch.Cldr
   ],
   how_much: [
-    money_exchange_rate_dets: "priv/money_exchange_rate.dets",
-    pricing_dets: "priv/pricing.dets"
+    money_exchange_rate_dets: "/data/priv/money_exchange_rate.dets",
+    pricing_dets: "/data/priv/pricing.dets"
   ]
 )
 
-File.mkdir_p!("priv")
+File.mkdir_p!("/data/priv")
 
 Mix.install([
-  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.4"},
+  {:handsontable_kino_smartcell,
+   git: "https://github.com/pastleo/handsontable_kino_smartcell.git", tag: "0.1.7"},
+  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.5"},
+  {:kino_explorer, "~> 0.1.11"},
+  {:vega_lite, "~> 0.1.6"},
+  {:kino_vega_lite, "~> 0.1.7"}
 ])
 
 Pythonx.uv_init("""

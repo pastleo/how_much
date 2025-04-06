@@ -13,11 +13,18 @@ defmodule HowMuch.Pricing.Twse do
       |> Calendar.strftime("%Y%m%d")
 
     query_date_prev_month =
-      Date.add(date, -(date.day + 1))
+      Date.beginning_of_month(date)
+      |> Date.add(-1)
       |> (&Date.from_erl!({&1.year, &1.month, 1})).()
       |> Calendar.strftime("%Y%m%d")
 
-    Enum.flat_map([query_date_prev_month, query_date_this_month], fn query_date ->
+    query_date_next_month =
+      Date.end_of_month(date)
+      |> Date.add(1)
+      |> (&Date.from_erl!({&1.year, &1.month, 1})).()
+      |> Calendar.strftime("%Y%m%d")
+
+    Enum.flat_map([query_date_prev_month, query_date_this_month, query_date_next_month], fn query_date ->
       url = "https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=#{query_date}&stockNo=#{stock_symbol}"
 
       case HTTPoison.get(url) do
@@ -39,7 +46,6 @@ defmodule HowMuch.Pricing.Twse do
           []
       end
     end)
-    |> IO.inspect()
     |> Enum.map(fn row ->
       %HowMuch.Pricing{
         symbol: "#{@symbol_prefix}#{stock_symbol}",
