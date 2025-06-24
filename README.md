@@ -33,15 +33,18 @@ Mix.install([
   {:kino_vega_lite, "~> 0.1.7"}
 ])
 
-Pythonx.uv_init("""
+```
+
+And `Python (pyproject.toml)` (livebook v0.16.2 or later):
+
+```toml
 [project]
 name = "project"
 version = "0.0.0"
 requires-python = "==3.13.*"
 dependencies = [
-  "yfinance==0.2.55"
+  "yfinance"
 ]
-""")
 ```
 
 And add `OPEN_EXCHANGE_RATES_APP_ID` to [secret](https://news.livebook.dev/hubs-and-secret-management---launch-week-1---day-3-3tMaJ2), visit [https://openexchangerates.org/](https://openexchangerates.org/) to get one
