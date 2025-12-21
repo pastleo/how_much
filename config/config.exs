@@ -11,7 +11,7 @@ config :pythonx, :uv_init,
   version = "0.0.0"
   requires-python = "==3.13.*"
   dependencies = [
-    "yfinance==0.2.55"
+    "yfinance"
   ]
   """
 

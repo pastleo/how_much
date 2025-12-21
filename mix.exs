@@ -24,7 +24,8 @@ defmodule HowMuch.MixProject do
     [
       {:httpoison, "~> 2.0"},
       {:ex_money, "~> 5.21"},
-      {:pythonx, "~> 0.4.0"}
+      {:pythonx, "~> 0.4.0"},
+      {:explorer, "~> 0.11.1"}
     ]
   end
 end
