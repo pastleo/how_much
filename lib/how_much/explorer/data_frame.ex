@@ -30,8 +30,8 @@ defmodule HowMuch.Explorer.DataFrame do
     |> DF.discard("has_record")
   end
 
-  def current(assets_value_data_frame, by_field) do
-    DF.filter(assets_value_data_frame, date > HowMuch.Utils.yesterday() and value > 0)
+  def current(assets_value_data_frame, by_field, ytd \\ HowMuch.Utils.yesterday()) do
+    DF.filter(assets_value_data_frame, date > ^ytd and value > 0)
     |> DF.select([by_field, "date", "value"])
   end
 end
