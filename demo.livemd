@@ -2,45 +2,64 @@
 
 ```elixir
 Application.put_all_env(
-  # if explorer fails to compile:
-  # explorer: [
-  #   use_legacy_artifacts: true
-  # ],
+  handsontable: [
+    license_key: "non-commercial-and-evaluation",
+    working_dir: __DIR__
+  ],
   ex_money: [
     open_exchange_rates_app_id: System.fetch_env!("LB_OPEN_EXCHANGE_RATES_APP_ID"),
-    exchange_rates_cache_module: HowMuch.MoneyExchangeRatesDets
-  ],
-  handsontable: [
-    license_key: "non-commercial-and-evaluation"
+    exchange_rates_cache_module: HowMuch.MoneyExchangeRatesDets,
+    default_cldr_backend: HowMuch.Cldr
   ],
   how_much: [
-    pricing_dets: "priv/pricing.dets",
-    money_exchange_rate_dets: "priv/money_exchange_rate.dets"
+    money_exchange_rate_dets: Path.join(__DIR__, "priv/money_exchange_rate.dets"),
+    pricing_dets: Path.join(__DIR__, "priv/pricing.dets")
   ]
 )
 
-File.mkdir_p!("priv")
+IO.inspect(__DIR__)
+|> Path.join("priv")
+|> File.mkdir_p!()
 
 Mix.install([
   {:handsontable_kino_smartcell,
-   git: "https://github.com/pastleo/handsontable_kino_smartcell.git", tag: "0.1.6"},
-  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.2"},
+   git: "https://github.com/pastleo/handsontable_kino_smartcell.git", tag: "0.1.9"},
+  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.8"},
   {:kino_explorer, "~> 0.1.11"},
   {:vega_lite, "~> 0.1.6"},
   {:kino_vega_lite, "~> 0.1.7"}
 ])
 ```
 
+```pyproject.toml
+[project]
+name = "project"
+version = "0.0.0"
+requires-python = "==3.13.*"
+dependencies = [
+  "yfinance"
+]
+```
+
+## Readme
+
+add `OPEN_EXCHANGE_RATES_APP_ID` to [secret](https://news.livebook.dev/hubs-and-secret-management---launch-week-1---day-3-3tMaJ2), visit [https://openexchangerates.org/](https://openexchangerates.org/) to get one
+
+See:
+
+* https://github.com/pastleo/how_much
+* https://github.com/pastleo/handsontable_kino_smartcell
+
 ## 1. Define asset records
 
-<!-- livebook:{"attrs":{"config":{},"data":[["","TWSE.0050","TWSE.2330","","","","","","",""],["2023-09-18","1000","2000","","","","","","",""],["2023-09-19","1000","3000","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""]],"elixir":"twse_stocks_records =\n  IO.inspect(twse_stocks_data)\n  |> HowMuch.Record.from_table_data()","variable":"twse_stocks_data"},"chunks":null,"kind":"Elixir.HandsontableKinoSmartcell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":"eyJjb25maWciOnt9LCJkYXRhIjpbWyIiLCJUV1NFLjAwNTAiLCJUV1NFLjIzMzAiLCIiLCIiLCIiLCIiLCIiLCIiLCIiXSxbIjIwMjMtMDktMTgiLCIxMDAwIiwiMjAwMCIsIiIsIiIsIiIsIiIsIiIsIiIsIiJdLFsiMjAyMy0xMC0wMSIsIjEwMDAiLCIzMDAwIiwiIiwiIiwiIiwiIiwiIiwiIiwiIl0sWyIyMDIzLTEwLTA1IiwiMTUwMCIsIjMwMDAiLCIiLCIiLCIiLCIiLCIiLCIiLCIiXSxbIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiJdLFsiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIl0sWyIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiXSxbIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiJdLFsiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIl0sWyIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiXV0sInNvdXJjZSI6InR3c2VfYXNzZXRzX3JlY29yZHMgPSBIb3dNdWNoLlJlY29yZC5mcm9tX3RhYmxlX2RhdGEodHdzZV9zdG9ja3NfZGF0YSlcbklPLnB1dHMoXCJ0d3NlX2Fzc2V0c19yZWNvcmRzOiAje2xlbmd0aCh0d3NlX2Fzc2V0c19yZWNvcmRzKX0sIGxhdGVzdDogI3tFbnVtLmF0KHR3c2VfYXNzZXRzX3JlY29yZHMsIC0xKS5kYXRlfVwiKSIsInZhcmlhYmxlIjoidHdzZV9zdG9ja3NfZGF0YSJ9","chunks":null,"kind":"Elixir.HandsontableKinoSmartcell","livebook_object":"smart_cell"} -->
 
 ```elixir
 twse_stocks_data = [
   ["", "TWSE.0050", "TWSE.2330", "", "", "", "", "", "", ""],
   ["2023-09-18", "1000", "2000", "", "", "", "", "", "", ""],
-  ["2023-09-19", "1000", "3000", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", "", "", ""],
+  ["2023-10-01", "1000", "3000", "", "", "", "", "", "", ""],
+  ["2023-10-05", "1500", "3000", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", ""],
@@ -48,13 +67,11 @@ twse_stocks_data = [
   ["", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", ""]
 ]
-
-twse_stocks_records =
-  IO.inspect(twse_stocks_data)
-  |> HowMuch.Record.from_table_data()
+twse_assets_records = HowMuch.Record.from_table_data(twse_stocks_data)
+IO.puts("twse_assets_records: #{length(twse_assets_records)}, latest: #{Enum.at(twse_assets_records, -1).date}")
 ```
 
-<!-- livebook:{"attrs":{"config":{},"data":[["","bank1:TWD","bank2:USD #fixed-deposit","bank3:JPY #fixed-deposit","","","","","",""],["2023-09-18","10,000","1,000.5","25,000","","","","","",""],["2023-09-19","12,000","2,000.0","20,000","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""]],"elixir":"fiat_assets_records =\n  IO.inspect(fiat_assets_data)\n  |> HowMuch.Record.from_table_data(tags: [\"#fiat\"])","variable":"fiat_assets_data"},"chunks":null,"kind":"Elixir.HandsontableKinoSmartcell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":"eyJjb25maWciOnt9LCJkYXRhIjpbWyIiLCJiYW5rMTpUV0QiLCJiYW5rMjpVU0QgI2ZpeGVkLWRlcG9zaXQiLCJiYW5rMzpKUFkgI2ZpeGVkLWRlcG9zaXQiLCIiLCIiLCIiLCIiLCIiLCIiXSxbIjIwMjMtMDktMTgiLCIxMCwwMDAiLCIxLDAwMC41IiwiMjUsMDAwIiwiIiwiIiwiIiwiIiwiIiwiIl0sWyIyMDIzLTEwLTAxIiwiMTIsMDAwIiwiMiwwMDAuMCIsIjIwLDAwMCIsIiIsIiIsIiIsIiIsIiIsIiJdLFsiMjAyMy0xMC0wNSIsIjEwMDAwIiwiMiwwMDAuMCIsIjIwLDAwMCIsIiIsIiIsIiIsIiIsIiIsIiJdLFsiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIl0sWyIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiXSxbIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiJdLFsiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIl0sWyIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiXSxbIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiJdXSwic291cmNlIjoiZmlhdF9hc3NldHNfcmVjb3JkcyA9IEhvd011Y2guUmVjb3JkLmZyb21fdGFibGVfZGF0YShmaWF0X2Fzc2V0c19kYXRhKVxuSU8ucHV0cyhcImZpYXRfYXNzZXRzX3JlY29yZHM6ICN7bGVuZ3RoKGZpYXRfYXNzZXRzX3JlY29yZHMpfSwgbGF0ZXN0OiAje0VudW0uYXQoZmlhdF9hc3NldHNfcmVjb3JkcywgLTEpLmRhdGV9XCIpIiwidmFyaWFibGUiOiJmaWF0X2Fzc2V0c19kYXRhIn0","chunks":null,"kind":"Elixir.HandsontableKinoSmartcell","livebook_object":"smart_cell"} -->
 
 ```elixir
 fiat_assets_data = [
@@ -71,8 +88,8 @@ fiat_assets_data = [
     ""
   ],
   ["2023-09-18", "10,000", "1,000.5", "25,000", "", "", "", "", "", ""],
-  ["2023-09-19", "12,000", "2,000.0", "20,000", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", "", "", ""],
+  ["2023-10-01", "12,000", "2,000.0", "20,000", "", "", "", "", "", ""],
+  ["2023-10-05", "10000", "2,000.0", "20,000", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", ""],
@@ -80,20 +97,18 @@ fiat_assets_data = [
   ["", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", ""]
 ]
-
-fiat_assets_records =
-  IO.inspect(fiat_assets_data)
-  |> HowMuch.Record.from_table_data(tags: ["#fiat"])
+fiat_assets_records = HowMuch.Record.from_table_data(fiat_assets_data)
+IO.puts("fiat_assets_records: #{length(fiat_assets_records)}, latest: #{Enum.at(fiat_assets_records, -1).date}")
 ```
 
-<!-- livebook:{"attrs":{"config":{},"data":[["","YH.VOO","","","","","","","",""],["2023-09-18","1","","","","","","","",""],["2023-09-19","2","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""],["","","","","","","","","",""]],"elixir":"firstrade_records =\n  IO.inspect(firstrade_data)\n  |> HowMuch.Record.from_table_data()","variable":"firstrade_data"},"chunks":null,"kind":"Elixir.HandsontableKinoSmartcell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":"eyJjb25maWciOnt9LCJkYXRhIjpbWyIiLCJZSC5WT08iLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiXSxbIjIwMjMtMDktMTgiLCIxIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIl0sWyIyMDIzLTEwLTAxIiwiMiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiJdLFsiMjAyMy0xMC0wNSIsIjIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiXSxbIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiJdLFsiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIl0sWyIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiXSxbIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiIsIiJdLFsiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIiwiIl0sWyIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiLCIiXV0sInNvdXJjZSI6ImZpcnN0cmFkZV9yZWNvcmRzID0gSG93TXVjaC5SZWNvcmQuZnJvbV90YWJsZV9kYXRhKGZpcnN0cmFkZV9kYXRhLCB0YWdzOiBbXCIjZmlyc3RyYWRlXCJdKVxuSU8ucHV0cyhcImZpcnN0cmFkZV9yZWNvcmRzOiAje2xlbmd0aChmaXJzdHJhZGVfcmVjb3Jkcyl9LCBsYXRlc3Q6ICN7RW51bS5hdChmaXJzdHJhZGVfcmVjb3JkcywgLTEpLmRhdGV9XCIpIiwidmFyaWFibGUiOiJmaXJzdHJhZGVfZGF0YSJ9","chunks":null,"kind":"Elixir.HandsontableKinoSmartcell","livebook_object":"smart_cell"} -->
 
 ```elixir
 firstrade_data = [
   ["", "YH.VOO", "", "", "", "", "", "", "", ""],
   ["2023-09-18", "1", "", "", "", "", "", "", "", ""],
-  ["2023-09-19", "2", "", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", "", "", ""],
+  ["2023-10-01", "2", "", "", "", "", "", "", "", ""],
+  ["2023-10-05", "2", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", ""],
@@ -101,82 +116,75 @@ firstrade_data = [
   ["", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", ""]
 ]
-
-firstrade_records =
-  IO.inspect(firstrade_data)
-  |> HowMuch.Record.from_table_data()
+firstrade_records = HowMuch.Record.from_table_data(firstrade_data, tags: ["#firstrade"])
+IO.puts("firstrade_records: #{length(firstrade_records)}, latest: #{Enum.at(firstrade_records, -1).date}")
 ```
 
 ## 2. Calculate & Serialize
 
 ```elixir
+require Explorer.DataFrame
+alias Explorer.DataFrame, as: DF
+alias Explorer.Series, as: DS
+alias VegaLite, as: Vl
+```
+
+```elixir
 target_currency = :TWD
-# ~D[2023-09-20] # Date.utc_today()
-today = ~D[2023-12-10]
+# today = Date.utc_today()
+today = ~D[2023-10-10]
 calculate_until = HowMuch.Utils.unix_timestamp(today)
 
 all_assets_values_serialized =
-  (fiat_assets_records ++ twse_stocks_records ++ firstrade_records)
+  (twse_assets_records ++ fiat_assets_records ++ firstrade_records)
   |> HowMuch.Value.calculate(target_currency, calculate_until)
   |> HowMuch.Value.serialize(target_currency)
 
-IO.inspect(all_assets_values_serialized)
+all_assets_values_data_frame = DF.new(all_assets_values_serialized)
 IO.puts("length of all_assets_values_serialized: #{length(all_assets_values_serialized)}")
 ```
 
-## 3. Summarize with Dataframe
-
 ```elixir
-require Explorer.DataFrame
-alias Explorer.DataFrame, as: DF
-
-all_assets_values_data_frame = DF.new(all_assets_values_serialized)
+two_weeks_ago = today |> Date.add(-2 * 7)
+start_time_input = Kino.Input.date("Select chart start time:", default: two_weeks_ago)
 ```
 
 ```elixir
-defmodule HowMuchValueDataFrameHelper do
-  def summarize(assets_values_data_frame, by_field) do
-    each_assets_values_data_frame =
-      assets_values_data_frame
-      |> DF.lazy()
-      |> DF.group_by([by_field, "date"])
-      |> DF.summarise(value_sum: sum(value))
-      |> DF.collect()
-      |> DF.pivot_wider("name", "value_sum")
-
-    total_data_frame =
-      assets_values_data_frame
-      |> DF.lazy()
-      |> DF.group_by("date")
-      |> DF.summarise(value_sum: sum(value))
-      |> DF.collect()
-
-    DF.join(
-      total_data_frame,
-      each_assets_values_data_frame,
-      on: ["date"],
-      how: :left
-    )
-  end
-end
-
-all_assets_values_summary_data_frame =
-  HowMuchValueDataFrameHelper.summarize(all_assets_values_data_frame, "name")
+start_time = Kino.Input.read(start_time_input)
 ```
 
-## 4. Plot with VegaLite
-
-<!-- livebook:{"attrs":{"chart_title":null,"height":600,"layers":[{"active":true,"chart_type":"bar","color_field":"name","color_field_aggregate":null,"color_field_bin":null,"color_field_scale_scheme":null,"color_field_type":"nominal","data_variable":"all_assets_values_data_frame","geodata_color":"blue","latitude_field":null,"longitude_field":null,"x_field":"date","x_field_aggregate":null,"x_field_bin":null,"x_field_scale_type":null,"x_field_type":"temporal","y_field":"value","y_field_aggregate":null,"y_field_bin":null,"y_field_scale_type":null,"y_field_type":"quantitative"}],"vl_alias":"Elixir.VegaLite","width":600},"chunks":null,"kind":"Elixir.KinoVegaLite.ChartCell","livebook_object":"smart_cell"} -->
+## 3. Summarizing & Charts
 
 ```elixir
-VegaLite.new(width: 600, height: 600)
-|> VegaLite.data_from_values(all_assets_values_data_frame,
-  only: ["date", "value", "name"]
+all_recorded_data_frame = 
+  HowMuch.Explorer.DataFrame.summarize(all_assets_values_data_frame, "name")
+  |> HowMuch.Explorer.DataFrame.filter_summarized_has_record()
+```
+
+```elixir
+HowMuch.Explorer.DataFrame.current(all_assets_values_data_frame, "name", Date.add(today, -1))
+|> HowMuch.VegaLite.current_pie_chart(
+  "name",
+  "Assets Value Distribution"
 )
-|> VegaLite.mark(:bar)
-|> VegaLite.encode_field(:x, "date", type: :temporal)
-|> VegaLite.encode_field(:y, "value", type: :quantitative)
-|> VegaLite.encode_field(:color, "name", type: :nominal)
 ```
 
-<!-- livebook:{"offset":7288,"stamp":{"token":"XCP.wzgnokIsxjGYK9ebZFUq9pqqfxQXMELxFP96f8FrGPj0P6VfBKqa9NK8C3nxRz215UCJaQ3ForecYOkgPRqoMzaG_uA2G2-PtUmsjlOd6Kj-JCZ8SgtTT5qDjDBxndrNzlYUORA","version":2}} -->
+```elixir
+HowMuch.VegaLite.summarized_recorded_bar_line_chart(
+  DF.filter(all_assets_values_data_frame, date > ^start_time),
+  DF.filter(all_recorded_data_frame, date > ^start_time),
+  "name",
+  "Assets Value Summary since #{start_time}"
+)
+```
+
+```elixir
+HowMuch.VegaLite.summarized_recorded_bar_line_chart(
+  all_assets_values_data_frame,
+  all_recorded_data_frame,
+  "name",
+  "Assets Value Summary (all time)"
+)
+```
+
+<!-- livebook:{"offset":8350,"stamp":{"token":"XCP.9BHlBJEdkefOUwMbCwu4iIEh3VJP3pPcr7g_h8SWK_mAmRlB3nnJMMAqH0htKekNAzLe4QDXhMO3D9mXxHSt_K4ORNroCb6io6hShoIFIWWLriQVbw7y1G3NwUS-mZT9ead06Vo","version":2}} -->

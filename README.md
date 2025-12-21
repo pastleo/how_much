@@ -9,7 +9,8 @@ Add these lines to `Notebook dependencies and setup` to install package and set 
 ```elixir
 Application.put_all_env(
   handsontable: [
-    license_key: "non-commercial-and-evaluation"
+    license_key: "non-commercial-and-evaluation",
+    working_dir: __DIR__
   ],
   ex_money: [
     open_exchange_rates_app_id: System.fetch_env!("LB_OPEN_EXCHANGE_RATES_APP_ID"),
@@ -17,22 +18,23 @@ Application.put_all_env(
     default_cldr_backend: HowMuch.Cldr
   ],
   how_much: [
-    money_exchange_rate_dets: "/data/priv/money_exchange_rate.dets",
-    pricing_dets: "/data/priv/pricing.dets"
+    money_exchange_rate_dets: Path.join(__DIR__, "priv/money_exchange_rate.dets"),
+    pricing_dets: Path.join(__DIR__, "priv/pricing.dets")
   ]
 )
 
-File.mkdir_p!("/data/priv")
+IO.inspect(__DIR__)
+|> Path.join("priv")
+|> File.mkdir_p!()
 
 Mix.install([
   {:handsontable_kino_smartcell,
-   git: "https://github.com/pastleo/handsontable_kino_smartcell.git", tag: "0.1.7"},
-  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.5"},
+   git: "https://github.com/pastleo/handsontable_kino_smartcell.git", tag: "0.1.9"},
+  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.8"},
   {:kino_explorer, "~> 0.1.11"},
   {:vega_lite, "~> 0.1.6"},
   {:kino_vega_lite, "~> 0.1.7"}
 ])
-
 ```
 
 And `Python (pyproject.toml)` (livebook v0.16.2 or later):
@@ -57,14 +59,10 @@ by adding `how_much` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.3"},
+    {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.8"},
   ]
 end
 ```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/how_much>.
 
 ## Development
 
