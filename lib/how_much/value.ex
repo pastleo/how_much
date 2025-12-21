@@ -27,7 +27,13 @@ defmodule HowMuch.Value do
 
   def serialize(values, target_currency) do
     Enum.map(values, fn %{
-                          record: %{name: name, symbol: symbol, amount: amount, tags: tags},
+                          record: %{
+                            name: name,
+                            symbol: symbol,
+                            amount: amount,
+                            tags: tags,
+                            date: record_date
+                          },
                           date: date,
                           price: %{price: price, currency: currency},
                           value: value
@@ -41,7 +47,8 @@ defmodule HowMuch.Value do
         "price_currency" => Atom.to_string(currency),
         "value" => Money.to_decimal(value) |> Decimal.to_float(),
         "value_currency" => Atom.to_string(target_currency),
-        "tags" => Enum.join(tags, " ")
+        "tags" => Enum.join(tags, " "),
+        "has_record" => record_date == date
       }
     end)
   end
