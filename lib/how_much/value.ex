@@ -95,7 +95,8 @@ defmodule HowMuch.Value do
 
   defp calculate_value(record, date, price, target_currency) do
     Float.round(record.amount * price.price, @ex_money_float_round)
-    |> to_currency(price.currency, target_currency, date)
+    |> (&Money.from_float(price.currency, &1)).()
+    |> to_currency(target_currency, date)
     |> (&if(record.debt, do: Money.mult!(&1, -1), else: &1)).()
     |> (&%HowMuch.Value{
           record: record,
@@ -105,26 +106,43 @@ defmodule HowMuch.Value do
         }).()
   end
 
-  defp to_currency(amount, currency, target_currency, _date) when currency == target_currency do
-    Money.from_float(target_currency, amount)
+  defp to_currency(money, target_currency, _date) when money.currency == target_currency, do: money
+
+  defp to_currency(money, target_currency, date) do
+    with :continue <- to_currency_with_historic_rates(money, target_currency, date),
+         :continue <- to_currency_with_latest_rates(money, target_currency, date)
+    do
+      Logger.warning(
+        "HowMuch.Value: convert currency from #{money.currency} to #{target_currency} on #{date} failed, using 0 #{target_currency}"
+      )
+      Money.new(target_currency, 0)
+    else
+      target_currency_money -> target_currency_money
+    end
   end
 
-  defp to_currency(amount, currency, target_currency, date) do
-    with money <- Money.from_float(currency, amount),
-         {:ok, target_currency_value} <-
-           Money.to_currency(
-             money,
-             target_currency,
-             Money.ExchangeRates.historic_rates(date)
-           ) do
-      target_currency_value
-    else
-      _ ->
-        Logger.warning(
-          "Convert currency from #{currency} to #{target_currency} on #{date} failed"
-        )
+  defp to_currency_with_historic_rates(money, target_currency, date) do
+    case Money.to_currency(
+       money,
+       target_currency,
+       Money.ExchangeRates.historic_rates(date)
+     ) do
+      {:ok, target_currency_money} -> target_currency_money
+      _ -> :continue
+    end
+  end
 
-        Money.new(target_currency, 0)
+  defp to_currency_with_latest_rates(money, target_currency, date) do
+    with true <- Date.diff(date, Date.utc_today) > -1,
+        {:ok, target_currency_money} <- Money.to_currency(
+          money,
+          target_currency,
+          Money.ExchangeRates.latest_rates()
+        ) do
+      Logger.debug("HowMuch.Value: using latest_rates for currency conversion from #{money.amount} #{money.currency} to #{target_currency_money.amount} #{target_currency_money.currency} on #{date}")
+      target_currency_money
+    else
+      _ -> :continue
     end
   end
 end
