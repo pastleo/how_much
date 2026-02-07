@@ -30,7 +30,7 @@ IO.inspect(__DIR__)
 Mix.install([
   {:handsontable_kino_smartcell,
    git: "https://github.com/pastleo/handsontable_kino_smartcell.git", tag: "0.1.9"},
-  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.8"},
+  {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.9"},
   {:kino_explorer, "~> 0.1.11"},
   {:vega_lite, "~> 0.1.6"},
   {:kino_vega_lite, "~> 0.1.7"}
@@ -59,7 +59,7 @@ by adding `how_much` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.8"},
+    {:how_much, git: "https://github.com/pastleo/how_much.git", tag: "0.1.9"},
   ]
 end
 ```

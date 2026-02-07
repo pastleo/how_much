@@ -28,6 +28,7 @@ defmodule HowMuch.Record do
 
     Enum.slice(data, 1..-1//1)
     |> Enum.flat_map(&from_table_data_row(&1, columns, debt, tags))
+    |> Enum.sort_by(& &1.date, Date)
   end
 
   defp from_table_data_columns(data) do
