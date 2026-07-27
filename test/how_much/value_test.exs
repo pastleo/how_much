@@ -1,13 +1,14 @@
 defmodule HowMuch.ValueTest do
   use ExUnit.Case
 
-  test "applies and serializes the record value multiplier" do
+  test "applies the multiplier and overrides the fetched price currency" do
     record = %HowMuch.Record{
-      name: "allocated-cash",
-      symbol: "TWD",
+      name: "converted-cash",
+      symbol: "USD",
       date: ~D[2026-07-21],
       amount: 100.0,
-      value_multiplier: 0.64
+      value_multiplier: 0.64,
+      price_currency_override: :TWD
     }
 
     assert [serialized] =
@@ -18,6 +19,7 @@ defmodule HowMuch.ValueTest do
     assert serialized["amount"] == 100.0
     assert serialized["price"] == 1
     assert serialized["value_multiplier"] == 0.64
+    assert serialized["price_currency"] == "TWD"
     assert serialized["value"] == 64.0
   end
 

@@ -4,6 +4,7 @@ defmodule HowMuch.Record do
             date: ~D[2000-01-01],
             amount: 1000,
             value_multiplier: 1.0,
+            price_currency_override: nil,
             debt: false,
             tags: []
 
@@ -14,8 +15,9 @@ defmodule HowMuch.Record do
   @value_multiplier_re "[0-9]+(?:\\.[0-9]+)?"
   @column_re Regex.compile!(
                "^\\s*(?:(?<name>#{@field_re}):)?(?<symbol>#{@field_re})" <>
-                 "(?<tags>(?:\\s*##{@field_re})*)" <>
-                 "(?:\\s*\\((?<value_multiplier>#{@value_multiplier_re})x\\))?\\s*$"
+                 "(?:\\((?<value_multiplier>#{@value_multiplier_re})x" <>
+                 "(?<price_currency>[A-Z]{3})\\))?" <>
+                 "(?<tags>(?:\\s*##{@field_re})*)\\s*$"
              )
   @tag_re Regex.compile!("##{@field_re}")
 
@@ -44,12 +46,19 @@ defmodule HowMuch.Record do
       case Regex.named_captures(@column_re, column) do
         %{
           "name" => name,
+          "price_currency" => price_currency,
           "symbol" => symbol,
           "tags" => tags_part,
           "value_multiplier" => value_multiplier
         } ->
-          name = if name == "", do: symbol, else: name
-          {name, symbol, parse_tags_part(tags_part), parse_value_multiplier(value_multiplier)}
+          with {:ok, price_currency_override} <- parse_price_currency(price_currency) do
+            name = if name == "", do: symbol, else: name
+
+            {name, symbol, parse_tags_part(tags_part), parse_value_multiplier(value_multiplier),
+             price_currency_override}
+          else
+            _ -> nil
+          end
 
         _ ->
           nil
@@ -68,6 +77,9 @@ defmodule HowMuch.Record do
     value_multiplier
   end
 
+  defp parse_price_currency(""), do: {:ok, nil}
+  defp parse_price_currency(price_currency), do: Money.validate_currency(price_currency)
+
   defp from_table_data_row(row, columns, debt, group_tags) do
     with {:ok, date} <- Date.from_iso8601(Enum.at(row, 0)),
          amounts <- Enum.slice(row, 1..length(columns)) do
@@ -76,13 +88,14 @@ defmodule HowMuch.Record do
         {table_data_parse_amount(amount_str), name_symbol}
       end)
       |> Enum.filter(&(is_float(elem(&1, 0)) and is_tuple(elem(&1, 1))))
-      |> Enum.map(fn {amount, {name, symbol, tags, value_multiplier}} ->
+      |> Enum.map(fn {amount, {name, symbol, tags, value_multiplier, price_currency_override}} ->
         %HowMuch.Record{
           name: name,
           symbol: symbol,
           date: date,
           amount: amount,
           value_multiplier: value_multiplier,
+          price_currency_override: price_currency_override,
           debt: debt,
           tags: Enum.uniq(tags ++ group_tags)
         }

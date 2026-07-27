@@ -109,6 +109,13 @@ defmodule HowMuch.Value do
   end
 
   defp calculate_value(record, date, price, target_currency) do
+    price =
+      if record.price_currency_override do
+        %{price | currency: record.price_currency_override}
+      else
+        price
+      end
+
     Float.round(record.amount * price.price * record.value_multiplier, @ex_money_float_round)
     |> (&Money.from_float(price.currency, &1)).()
     |> to_currency(target_currency, date)
