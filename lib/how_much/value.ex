@@ -15,7 +15,7 @@ defmodule HowMuch.Value do
     |> Enum.flat_map(fn {_name, records} ->
       Enum.map(records, &{&1, unix_timestamp(&1.date)})
       |> Enum.filter(&(elem(&1, 1) <= until_timestamp))
-      |> Enum.uniq_by(&elem(&1, 1))
+      |> ensure_unique_record_dates!()
       |> Enum.sort_by(&elem(&1, 1))
       |> Enum.map(&elem(&1, 0))
       |> calculate_asset(target_currency, until_timestamp)
@@ -25,12 +25,26 @@ defmodule HowMuch.Value do
   def calculate(asset_records, target_currency, until_time),
     do: calculate(asset_records, target_currency, DateTime.to_unix(until_time))
 
+  defp ensure_unique_record_dates!(records_with_timestamps) do
+    Enum.reduce(records_with_timestamps, MapSet.new(), fn {record, timestamp}, timestamps ->
+      if MapSet.member?(timestamps, timestamp) do
+        raise ArgumentError,
+              "multiple records found for asset #{inspect(record.name)} on #{record.date}"
+      end
+
+      MapSet.put(timestamps, timestamp)
+    end)
+
+    records_with_timestamps
+  end
+
   def serialize(values, target_currency) do
     Enum.map(values, fn %{
                           record: %{
                             name: name,
                             symbol: symbol,
                             amount: amount,
+                            value_multiplier: value_multiplier,
                             tags: tags,
                             date: record_date
                           },
@@ -43,6 +57,7 @@ defmodule HowMuch.Value do
         "symbol" => symbol,
         "date" => date,
         "amount" => amount,
+        "value_multiplier" => value_multiplier,
         "price" => price,
         "price_currency" => Atom.to_string(currency),
         "value" => Money.to_decimal(value) |> Decimal.to_float(),
@@ -94,7 +109,7 @@ defmodule HowMuch.Value do
   end
 
   defp calculate_value(record, date, price, target_currency) do
-    Float.round(record.amount * price.price, @ex_money_float_round)
+    Float.round(record.amount * price.price * record.value_multiplier, @ex_money_float_round)
     |> (&Money.from_float(price.currency, &1)).()
     |> to_currency(target_currency, date)
     |> (&if(record.debt, do: Money.mult!(&1, -1), else: &1)).()
